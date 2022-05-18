@@ -18,6 +18,7 @@
 
 <?php 
     require "inc/db_connect.inc.php"; // connect to the blog database
+    require "inc/functions.inc.php"; // Limit text
     
     // SQL to get all blog posts. Note the use of a JOIN
     $sql = "SELECT post.post_id, post.title, post.date, post.content, author.author_id, author.first_name, author.last_name 
@@ -63,10 +64,34 @@
             echo "<li>{$category_row->category}</li>";
         }
         echo "</ul>";
+
+        // Now get the tags for this post with SQL JOIN
+          $sql = "SELECT post_tag.post_id, post_tag.tag_id, tag.tag 
+          FROM post_tag 
+          JOIN tag 
+          ON post_tag.tag_id = tag.id 
+          WHERE post_tag.post_id = :post_id";
+          
+          // PDO Prepared statements
+          $stmt_tag = $db->prepare($sql);
+          $stmt_tag->execute(["post_id" => $row->post_id]);
+          $tags = $stmt_tag->fetchAll();
+          
+          // Generate an unordered list with tags
+          echo "<p>Tag(s)</p>";
+          $tag_array = [];
+          //echo "<ul>";
+          foreach($tags as $tags_row){
+              //echo "<li>{$tags_row->tag}</li>";
+              array_push($tag_array,$tags_row->tag);
+          }
+          echo "<p>" . implode(", ",$tag_array) . "</p>";
+          //echo "</ul>";
         
         // Show the blog post content
-        echo "<p>{$row->content}</p>";
-        echo "<a href='#' title='Read the post'>Read more ></a>";
+        $content = limit_text($row->content,15);
+        echo "<p>{$content}</p>";
+        echo "<a href='single.php?id={$row->post_id}' title='Read the post'>Read more ></a>";
         echo "</div>"; // closing .col-1
     } // end of loop for Posts
 ?>
